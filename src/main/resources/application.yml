@@ -1,0 +1,18 @@
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/superstore
+    username: tmax
+    password: tmax
+  batch:
+    job:
+      name: testJob
+    jdbc:
+      initialize-schema: always
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+server:
+  port: 9090
