@@ -3,10 +3,10 @@ package com.tmax.superstorebatch.config;
 import com.tmax.superstorebatch.Coffee;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
@@ -24,9 +24,11 @@ import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +41,7 @@ public class CommonConfiguration {
     @Bean
     public Job chunkProcessingJob(JobRepository jobRepository, Step testStep, PlatformTransactionManager transactionManager) {
         return new JobBuilder("testJob", jobRepository)
-                .start(chunkBaseStep(jobRepository, transactionManager))
+                .start(chunkBaseStep(null, jobRepository, transactionManager))
                 .build();
     }
 
@@ -51,17 +53,24 @@ public class CommonConfiguration {
     }
 
     @Bean
-    public Step chunkBaseStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+    @JobScope
+    public Step chunkBaseStep(
+            @Value("#{jobParameters[chunkSize]}") String chunkSize,
+            JobRepository jobRepository,
+            PlatformTransactionManager transactionManager) {
         return new StepBuilder("chunkBaseStep", jobRepository)
-                .<String, String>chunk(10, transactionManager)
+                .<String, String>chunk(
+                        StringUtils.hasText(chunkSize) ? Integer.parseInt(chunkSize) : 10
+                        , transactionManager)
                 .reader(itemReader())
                 .processor(itemProcessor())
                 .writer(itemWriter())
+                .allowStartIfComplete(true)
                 .build();
     }
 
     private ItemWriter<String> itemWriter() {
-        return items -> items.forEach(log::info);
+        return items -> log.info("items size : {}", items.size());
     }
 
     private ItemProcessor<? super String, String> itemProcessor() {

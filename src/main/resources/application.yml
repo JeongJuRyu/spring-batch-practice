@@ -6,8 +6,6 @@ spring:
     username: tmax
     password: tmax
   batch:
-    job:
-      name: testJob
     jdbc:
       initialize-schema: always
   jpa:
