@@ -9,7 +9,7 @@ spring:
     jdbc:
       initialize-schema: always
     job:
-      name: savePersonJob
+      name: userJob
   jpa:
     hibernate:
       ddl-auto: create

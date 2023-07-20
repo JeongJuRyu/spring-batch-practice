@@ -7,11 +7,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobScope;
-import org.springframework.batch.core.job.CompositeJobParametersValidator;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaItemWriter;
@@ -20,7 +20,9 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.batch.item.support.CompositeItemWriter;
+import org.springframework.batch.item.support.builder.CompositeItemProcessorBuilder;
 import org.springframework.batch.item.support.builder.CompositeItemWriterBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -49,9 +51,34 @@ public class SavePersonConfiguration {
         return new StepBuilder("savePersonStep", jobRepository)
                 .<Person, Person >chunk(10, platformTransactionManager)
                 .reader(itemReader())
-                .processor(new DuplicateValidationProcessor<>(Person::getName, Boolean.parseBoolean(allowDuplicate)))
+                .processor(itemProcessor(allowDuplicate))
                 .writer(itemWriter())
+                .faultTolerant()
+                .skip(NotFoundNameException.class)
+                .skipLimit(2)
+                .retry(NotFoundNameException.class)
+                .retryLimit(3)
                 .build();
+    }
+
+    // 중복 처리 프로세서, 빈 문자열에 대한 처리 프로세서 2개를 두고, 이를 CompositeItemProcessor 로 묶는다.
+    // 또한 validation을 통과하지 못하는 경우 최대 3번을
+    private ItemProcessor<? super Person, ? extends Person> itemProcessor(String allowDuplicate) throws Exception {
+        DuplicateValidationProcessor<Person> duplicateValidationProcessor
+                = new DuplicateValidationProcessor<>(Person::getName, Boolean.parseBoolean(allowDuplicate));
+
+        ItemProcessor<Person, Person> validationProcessor = item -> {
+            if(item.isNotEmptyName()){
+                return item;
+            }
+            throw new NotFoundNameException();
+        };
+        CompositeItemProcessor<Person, Person> itemProcessor = new CompositeItemProcessorBuilder<Person, Person>()
+                .delegates(new PersonValidationRetryProcessor(), validationProcessor, duplicateValidationProcessor)
+                .build();
+
+        itemProcessor.afterPropertiesSet();
+        return itemProcessor;
     }
 
     private ItemWriter<Person> itemWriter() throws Exception {
