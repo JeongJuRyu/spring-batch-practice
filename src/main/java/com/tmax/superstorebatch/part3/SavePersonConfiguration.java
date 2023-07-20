@@ -45,6 +45,7 @@ public class SavePersonConfiguration {
     @JobScope
     // 쉘에서 실행 시 파라미터를 준다
     public Step savePersonStep(@Value("#{jobParameters[allow_duplicate]}") String allowDuplicate, JobRepository jobRepository, PlatformTransactionManager platformTransactionManager) throws Exception {
+
         return new StepBuilder("savePersonStep", jobRepository)
                 .<Person, Person >chunk(10, platformTransactionManager)
                 .reader(itemReader())
