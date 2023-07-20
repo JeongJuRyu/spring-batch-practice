@@ -1,5 +1,6 @@
 package com.tmax.superstorebatch.part3;
 
+import com.tmax.superstorebatch.part3.entity.Coffee;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
 

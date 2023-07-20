@@ -1,4 +1,4 @@
-package com.tmax.superstorebatch.part3;
+package com.tmax.superstorebatch.part3.entity;
 
 import lombok.Getter;
 import lombok.Setter;
