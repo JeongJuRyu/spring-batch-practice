@@ -48,7 +48,7 @@ public class SavePersonConfiguration {
         return new StepBuilder("savePersonStep", jobRepository)
                 .<Person, Person >chunk(10, platformTransactionManager)
                 .reader(itemReader())
-                .processor(new DuplicateValidationProcessor<>(Person::getName, Boolean.parseBoolean("true")))
+                .processor(new DuplicateValidationProcessor<>(Person::getName, Boolean.parseBoolean(allowDuplicate)))
                 .writer(itemWriter())
                 .build();
     }
