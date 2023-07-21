@@ -24,6 +24,7 @@ public class User {
     private Level level = Level.NORMAL;
 
     @OneToMany(cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "user_id")
     private List<Orders> orders;
 
     private LocalDate updatedDate;
