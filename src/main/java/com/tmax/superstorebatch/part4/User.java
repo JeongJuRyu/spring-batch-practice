@@ -1,11 +1,13 @@
 package com.tmax.superstorebatch.part4;
 
+import com.tmax.superstorebatch.part5.Orders;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 
 @Getter
@@ -21,18 +23,25 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Level level = Level.NORMAL;
 
-    private int totalAmount;
+    @OneToMany(cascade = CascadeType.PERSIST)
+    private List<Orders> orders;
 
     private LocalDate updatedDate;
 
     @Builder
-    public User(String username, int totalAmount) {
+    public User(String username, List<Orders> orders) {
         this.username = username;
-        this.totalAmount = totalAmount;
+        this.orders = orders;
     }
 
     public boolean availableLevelUp() {
         return Level.availableLevelUp(this.getLevel(), this.getTotalAmount());
+    }
+
+    private int getTotalAmount() {
+        return this.orders.stream()
+                .mapToInt(Orders::getAmount)
+                .sum();
     }
 
     public enum Level {
